@@ -43,12 +43,13 @@ private fun operativeSubtitle(o: OperativeState) = when (o) {
     OperativeState.INCIDENT -> "Incidente en Curso"
 }
 
-private fun missionHeadline(t: Telemetry): Pair<String, Color> = when (t.missionState) {
-    MissionState.RUNNING -> "En Ejecución (${t.progress}%)" to RG.Green
-    MissionState.PAUSED -> "En Pausa (${t.progress}%)" to RG.Amber
-    MissionState.COMPLETED -> "Completada (100%)" to RG.Green
-    MissionState.CANCELLED -> "Cancelada" to RG.Amber
-    MissionState.NONE -> "Sin misión" to RG.TextMuted
+private fun missionHeadline(t: Telemetry): Pair<String, Color> = when {
+    t.operative == OperativeState.RETURNING -> "Abortada: regresando" to RG.Amber
+    t.missionState == MissionState.RUNNING -> "En Ejecución (${t.progress}%)" to RG.Green
+    t.missionState == MissionState.PAUSED -> "En Pausa (${t.progress}%)" to RG.Amber
+    t.missionState == MissionState.COMPLETED -> "Completada (100%)" to RG.Green
+    t.missionState == MissionState.CANCELLED -> "Cancelada (${t.progress}%)" to RG.Amber
+    else -> "Sin misión" to RG.TextMuted
 }
 
 // ------------------------------------------------------------------
@@ -66,7 +67,7 @@ private fun NormalView(
     }
 
     val (headline, headlineColor) = missionHeadline(t)
-    val barColor = if (t.missionState == MissionState.PAUSED) RG.Amber else RG.Blue
+    val barColor = if (t.missionState == MissionState.PAUSED || t.operative == OperativeState.RETURNING) RG.Amber else RG.Blue
     val elapsed = t.progress * 35 / 100
     val gait = when (t.operative) {
         OperativeState.PATROLLING -> "Trote Normal"
@@ -91,6 +92,13 @@ private fun NormalView(
             StatusBadge("ONLINE", RG.Green)
             Text("${t.battery}%", color = batteryColor(t.battery), fontSize = 16.sp, fontWeight = FontWeight.Bold)
             if (t.battery <= 20) Text("⚠ Batería baja", color = batteryColor(t.battery), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
+
+        if (t.operative == OperativeState.RETURNING) {
+            RGCard(Modifier.fillMaxWidth(), borderColor = RG.Amber, container = RG.AmberDark) {
+                Text("REGRESANDO A BASE", color = RG.Amber, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("El robot abandonó la ronda y vuelve al punto seguro.", color = RG.TextSecondary, fontSize = 13.sp)
+            }
         }
 
         // Misión actual

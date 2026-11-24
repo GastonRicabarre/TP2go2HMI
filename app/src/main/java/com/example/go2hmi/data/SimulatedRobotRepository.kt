@@ -72,11 +72,18 @@ class SimulatedRobotRepository(scope: CoroutineScope) : RobotRepository {
             }
             OperativeState.RETURNING -> {
                 returnTicks--
-                if (tick % 4 == 0) drainBattery(1)
-                if (returnTicks <= 0) {
-                    s = s.copy(operative = OperativeState.IDLE, missionState = MissionState.CANCELLED, speed = 0f)
+                if (returnTicks > 0) {
+                    // la ubicación se acerca al punto seguro (18, 6)
+                    s = s.copy(
+                        x = s.x + (18f - s.x) / returnTicks,
+                        y = s.y + (6f - s.y) / returnTicks
+                    )
+                } else {
+                    s = s.copy(x = 18f, y = 6f, operative = OperativeState.IDLE,
+                        missionState = MissionState.CANCELLED, speed = 0f)
                     emit("RETURNED", "El robot llegó al punto seguro")
                 }
+                if (tick % 4 == 0) drainBattery(1)
             }
             OperativeState.IDLE -> {
                 // En la base se recarga lentamente
@@ -164,7 +171,7 @@ class SimulatedRobotRepository(scope: CoroutineScope) : RobotRepository {
                 emit("MISSION_CANCELLED", "Misión cancelada por el operador")
             }
             CommandType.RETURN_SAFE -> {
-                returnTicks = 5
+                returnTicks = 15
                 s = s.copy(operative = OperativeState.RETURNING, speed = 0.6f)
             }
             CommandType.OPERATIONAL_STOP ->
